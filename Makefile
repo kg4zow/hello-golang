@@ -1,4 +1,9 @@
 ########################################
+# Filename of the final executable
+
+NAME    := hello
+
+########################################
 # Pre-calculate values used in 'version' output so that if building multiple
 # arches, they all have the same version/time/etc.
 
@@ -18,12 +23,8 @@ MYARCH  := $(shell go env GOARCH )
 # Which OS/ARCH combinations will be built by 'make all'
 # - run 'go tool dist list' to see all available combinations
 
-ALL_ARCHES  := darwin/amd64 darwin/arm64 linux/amd64 linux/arm
-
-########################################
-# Filename of the final executable
-
-NAME    := hello
+ALL_ARCHES  := darwin/amd64 darwin/arm64 linux/amd64 linux/arm \
+                windows/386 windows/amd64
 
 ###############################################################################
 #
@@ -34,7 +35,7 @@ build: out/$(MYOS)-$(MYARCH)/$(NAME)
 ########################################
 # Build OS-ARCH/NAME for all combinations listed in ARCHES above
 
-all: $(foreach A,$(ALL_ARCHES),out/$(subst /,-,$(A))/$(NAME))
+all: $(foreach A,$(ALL_ARCHES),out/$(subst /,-,$(A))/$(NAME)$(if $(A:windows%=),,.exe))
 
 ########################################
 # Remove all previously compiled binaries
@@ -46,7 +47,7 @@ clean:
 #
 # How to build OS-ARCH/NAME for any OS/ARCH combination
 
-out/%/$(NAME): go.mod Makefile version.txt $(SOURCES)
+out/%/$(NAME) out/%/$(NAME).exe: go.mod Makefile version.txt $(SOURCES)
 	GOOS=$(shell echo "$@" | awk -F '[\-/]' '{print $$2}' ) \
 	GOARCH=$(shell echo "$@" | awk -F '[\-/]' '{print $$3}' ) \
 	go build -o $@ \
@@ -54,7 +55,7 @@ out/%/$(NAME): go.mod Makefile version.txt $(SOURCES)
 	        -X main.prog_version=$(VERSION) \
 	        -X main.prog_date=$(NOW) \
 	        -X main.prog_hash=$(HASH) \
-	        -X main.prog_desc=$(DESC)" \
+	        -X main.prog_desc=$(DESC)"
 
 ########################################
 # Specific rule for reMarkable 2 tablet ... linux/arm with GOARM=7
@@ -66,4 +67,4 @@ out/linux-arm/$(NAME): go.mod Makefile version.txt $(SOURCES)
 	        -X main.prog_version=$(VERSION) \
 	        -X main.prog_date=$(NOW) \
 	        -X main.prog_hash=$(HASH) \
-	        -X main.prog_desc=$(DESC)" \
+	        -X main.prog_desc=$(DESC)"

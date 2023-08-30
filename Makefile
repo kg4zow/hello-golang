@@ -8,7 +8,7 @@ NAME    := hello
 # arches, they all have the same version/time/etc.
 
 NOW     := $(shell date -u +%Y-%m-%dT%H:%M:%SZ )
-VERSION := $(shell cat version.txt )
+VERSION := $(shell head -1 version.txt )
 HASH    := $(shell git rev-parse --short HEAD 2>/dev/null || true )
 DESC    := $(shell git describe --dirty --broken --long 2>/dev/null || true )
 
@@ -23,25 +23,28 @@ MYARCH  := $(shell go env GOARCH )
 # Which OS/ARCH combinations will be built by 'make all'
 # - run 'go tool dist list' to see all available combinations
 
-ALL_ARCHES  := darwin/amd64 darwin/arm64 linux/amd64 linux/arm \
-                windows/386 windows/amd64
+ALL_ARCHES := darwin/amd64 darwin/arm64 linux/amd64 \
+		windows/386 windows/amd64
 
 ###############################################################################
 #
 # First/default target: build for *this* machine's OS/ARCH
 
-build: out/$(MYOS)-$(MYARCH)/$(NAME)
+$(NAME): out/$(MYOS)-$(MYARCH)/$(NAME)
+	ln -sf "out/$(MYOS)-$(MYARCH)/$(NAME)" "$(NAME)"
 
 ########################################
 # Build OS-ARCH/NAME for all combinations listed in ARCHES above
+# - if OS is "windows", add ".exe" to the name
 
 all: $(foreach A,$(ALL_ARCHES),out/$(subst /,-,$(A))/$(NAME)$(if $(A:windows%=),,.exe))
+	ln -sf "out/$(MYOS)-$(MYARCH)/$(NAME)" "$(NAME)"
 
 ########################################
-# Remove all previously compiled binaries
+# Remove all previously compiled binaries and symlinks
 
 clean:
-	rm -rf out
+	rm -rf $(NAME) out
 
 ###############################################################################
 #
@@ -59,6 +62,7 @@ out/%/$(NAME) out/%/$(NAME).exe: go.mod Makefile version.txt $(SOURCES)
 
 ########################################
 # Specific rule for reMarkable 2 tablet ... linux/arm with GOARM=7
+# - add "linux/arm" to ALL_ARCHES to build this
 
 out/linux-arm/$(NAME): go.mod Makefile version.txt $(SOURCES)
 	GOOS=linux GOARCH=arm GOARM=7 \
